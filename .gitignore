@@ -84,3 +84,6 @@ Thumbs.db
 # to be committed. Fixture corpora with hand-computed expected tables are the only
 # thing that makes the analyzers verifiable (TASK-018 .. TASK-022).
 !tests/fixtures/**
+
+# --- local agent guidance, not published ---
+CLAUDE.md
