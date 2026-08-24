@@ -82,3 +82,27 @@ A deviation is not a bug and not an assumption. An assumption fills a silence
   Contributors on macOS or Linux create an ordinary symlink; the path is identical either
   way.
 - **Approved by:** maintainer, 2026-08-24.
+
+## DEV-006 The project runs on Python 3.12, not the 3.11.9 that spec Section 13.3 pins
+
+- **What:** `configs/repro/environment.yaml` declares `python: "3.12"` and
+  `pyproject.toml` declares `requires-python = ">=3.12,<3.14"`. Spec Section 13.3 pins
+  `python: "3.11.9"`.
+- **Why:** tau2-bench v1.0.1, the commit TASK-003 pinned, declares
+  `requires-python = ">=3.12,<3.14"` and cannot be installed on 3.11.9. Verified by dry
+  run, which fails with "tau2==1.0.1 cannot be used". R1, the Stage 5 core reproduction,
+  requires tau2-retail, so this was not deferrable to the scale phase. ALFWorld's
+  `textworld[pddl]` resolves cleanly on 3.12, so one interpreter serves every benchmark.
+- **Affects:** spec Section 13.3 only. Section 13.3 is marked
+  `ENGINEERING RECOMMENDATION`, not `PAPER`, so no `RR-xxx` requirement and no measured
+  behavior is touched. Nothing in the method depends on the interpreter version.
+- **Alternatives rejected:** keeping 3.11.9 and running the tau2 adapter out of process
+  behind the `EnvironmentAdapter` port, which is architecturally clean but adds a
+  subprocess hop, a second lockfile, and a serialization format to maintain; and pinning
+  an older tau2 that supports 3.11, which changes harness behavior relative to current
+  upstream and forfeits the v1.0.1 user-simulator defaults that moved GAP-08 off
+  `blocked`.
+- **Mitigation:** The upper bound `<3.14` is tau2-bench's constraint, not ours, and is
+  declared at Stage 1 rather than discovered at Stage 5. The exact patch version is
+  recorded in every run manifest, per Section 13.3's determinism block.
+- **Approved by:** maintainer, 2026-08-24, in response to an explicit question.

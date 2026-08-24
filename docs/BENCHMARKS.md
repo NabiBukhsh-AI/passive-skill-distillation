@@ -16,7 +16,7 @@ The commit SHAs below are what `configs/repro/environment.yaml` carries.
 |---|---|---|---|
 | ALFWorld | **runnable** | `1558ba46d078279ecb4c5d33a6cdffc96714a2d2` (tag 0.4.2) | Nothing. Assets need a download step. |
 | SpreadsheetBench (SSB-Verified) | **runnable, with caveats** | `49b73a94775fb489063f60ca1865e3a650079a79` (branch `main`) | Upstream `requirements.txt` is internally unsatisfiable. Do not use it verbatim. |
-| tau2-bench | **blocked on a Python-version decision** | `fc0055dc4e0a316c3f83133267fbd6faaa770992` (tag v1.0.1, peeled) | Requires Python >=3.12,<3.14. Spec Section 13.3 pins 3.11.9. |
+| tau2-bench | **runnable on 3.12** | `fc0055dc4e0a316c3f83133267fbd6faaa770992` (tag v1.0.1, peeled) | Resolved: the project moved to Python 3.12 (DEV-006). |
 
 Two gaps improved as a direct result of this investigation. See "Gap register changes" at
 the end.
@@ -155,7 +155,7 @@ all must pass. Spec Section 5.4 calls this modification accuracy.
   `b711c1ead46f55111bf765cf44d5da8bacc2d28c`; the commit it points at is the pin.
 - **Branch head at time of writing:** `main` = `a2c024725189473d2d7cea3a5cfdbcc67478e41f`, deliberately not used.
 
-### BLOCKING: Python version conflict with spec Section 13.3
+### RESOLVED: Python version conflict with spec Section 13.3
 
 `pyproject.toml` declares:
 
@@ -232,19 +232,16 @@ already states.
 
 ---
 
-## Open decision for the maintainer
+## Decision taken on the interpreter version
 
-The interpreter version. Options, with the evidence above:
+**The project runs on Python 3.12** (decided 2026-08-24, recorded as DEV-006).
 
-1. **Bump the project to Python 3.12.** Satisfies ALFWorld and tau2-bench together;
-   verified by dry run for both. Deviates from spec Section 13.3, which is marked
-   `ENGINEERING RECOMMENDATION` rather than `PAPER`, so no research requirement is touched.
-2. **Keep 3.11.9 and run tau2 out of process** in its own 3.12 environment behind the
-   `EnvironmentAdapter` port. Architecturally clean, since the port is already an isolation
-   boundary, but it adds a subprocess or service hop and a second lockfile.
-3. **Pin an older tau2** that supports 3.11. Changes harness behavior relative to current
-   upstream and forfeits the v1.0.1 simulator defaults recorded above. Not recommended.
+Two alternatives were considered and rejected: keeping 3.11.9 and running tau2 out of
+process behind the `EnvironmentAdapter` port, which is architecturally clean but adds a
+subprocess hop, a second lockfile, and a serialization format to maintain; and pinning an
+older tau2 that supports 3.11, which changes harness behavior relative to current upstream
+and forfeits the v1.0.1 simulator defaults that moved GAP-08 off `blocked`.
 
-Until this is decided, `pyproject.toml` declares `requires-python = ">=3.11"` so that no
-choice is foreclosed, and `configs/repro/environment.yaml` carries the pin explicitly with
-the conflict annotated inline.
+`pyproject.toml` declares `requires-python = ">=3.12,<3.14"`. The upper bound belongs to
+tau2-bench, not to us: a 3.14 environment cannot install the benchmark R1 depends on, and
+a constraint that is discovered at Stage 5 is worse than one declared at Stage 1.

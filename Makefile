@@ -7,8 +7,9 @@ UV ?= uv
 
 # The interpreter is pinned here rather than in a .python-version file, because the
 # supplied .gitignore excludes .python-version and a pin that cannot be committed is not a
-# pin. See docs/BENCHMARKS.md for the open decision between 3.11.9 and 3.12.
-UV_PYTHON ?= 3.11.9
+# pin. 3.12 rather than spec Section 13.3's 3.11.9: tau2-bench cannot install on 3.11.
+# See docs/DEVIATIONS.md DEV-006.
+UV_PYTHON ?= 3.12
 
 .PHONY: setup lint format typecheck gaps imports test test-security check \
         reproduce-r0 reproduce-r1 clean help

@@ -7,17 +7,16 @@
 # Evidence for every claim in this file is in docs/BENCHMARKS.md, verified 2026-08-24
 # against the upstream repositories at these commits.
 
-python: "3.11.9"
-# OPEN DECISION, see docs/BENCHMARKS.md "Open decision for the maintainer".
-#   tau2-bench v1.0.1 declares requires-python ">=3.12,<3.14" and therefore CANNOT install
-#   on 3.11.9. Verified by dry run. ALFWorld's textworld[pddl] resolves on both 3.11.9 and
-#   3.12, so 3.12 satisfies both benchmarks. R1 (Stage 5) needs tau2-retail, so this is not
-#   deferrable to Stage 10.
-#   Until the maintainer decides, pyproject.toml declares requires-python ">=3.11" so that
-#   neither option is foreclosed. Do not resolve this by silently editing the line above.
+python: "3.12"
+# DEVIATION from spec Section 13.3, which pins 3.11.9. Decided 2026-08-24, DEV-006.
+#   tau2-bench v1.0.1 declares requires-python ">=3.12,<3.14" and CANNOT install on
+#   3.11.9. Verified by dry run. ALFWorld's textworld[pddl] resolves on both, so 3.12
+#   satisfies every benchmark. R1 (Stage 5) needs tau2-retail, so this was not deferrable.
+#   Section 13.3 is marked ENGINEERING RECOMMENDATION, not PAPER, so no research
+#   requirement is affected. Record the exact patch version in every run manifest.
 
 lockfile: uv.lock            # exact, committed, hash-verified
-container_base: python:3.11-slim   # TODO(validate): pin by digest, not tag, before R1
+container_base: python:3.12-slim   # TODO(validate): pin by digest, not tag, before R1
 
 core:
   - pydantic==2.*
@@ -34,7 +33,7 @@ benchmarks:
     pin: "1558ba46d078279ecb4c5d33a6cdffc96714a2d2"
     pin_note: "tag 0.4.2; the SHA is the pin"
     status: runnable
-    python_ok: ["3.11.9", "3.12"]
+    python_ok: ["3.12"]
     entry_point: "alfworld.env, driven directly by our adapter (TASK-035)"
     assets_required: true
     assets:
@@ -80,7 +79,7 @@ benchmarks:
     source: https://github.com/sierra-research/tau2-bench
     pin: "fc0055dc4e0a316c3f83133267fbd6faaa770992"
     pin_note: "tag v1.0.1 peeled; tag object is b711c1ead46f55111bf765cf44d5da8bacc2d28c"
-    status: blocked_on_python_decision
+    status: runnable
     requires_python: ">=3.12,<3.14"
     domains: [retail, telecom]
     splits_from_upstream: "data/tau2/domains/<domain>/split_tasks.json"

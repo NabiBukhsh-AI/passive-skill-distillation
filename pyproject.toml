@@ -8,10 +8,11 @@ version = "0.1.0"
 description = "Passive Skill Distillation Platform: turn agent trajectory logs into validated, versioned system-prompt skills. No model training anywhere."
 readme = "README.md"
 license = { text = "MIT" }
-# OPEN DECISION (docs/BENCHMARKS.md): spec Section 13.3 pins 3.11.9, but tau2-bench v1.0.1
-# declares requires-python ">=3.12,<3.14" and R1 needs tau2-retail. ">=3.11" forecloses
-# neither option. Do not narrow this without updating docs/DEVIATIONS.md.
-requires-python = ">=3.11"
+# DECIDED 2026-08-24, see docs/DEVIATIONS.md DEV-006. Spec Section 13.3 pins 3.11.9, but
+# tau2-bench v1.0.1 declares requires-python ">=3.12,<3.14" and cannot install on 3.11.
+# R1 needs tau2-retail, so the conflict bites at the Stage 5 gate. The upper bound is
+# tau2-bench's, not ours: a 3.14 environment cannot install the benchmark R1 depends on.
+requires-python = ">=3.12,<3.14"
 
 dependencies = [
     "pydantic>=2.9,<3",
@@ -46,7 +47,7 @@ packages = ["src/psd"]
 # ---------------------------------------------------------------------------
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -66,7 +67,7 @@ known-first-party = ["psd"]
 # mypy: strict on core, ordinary elsewhere (spec Section 18.1)
 # ---------------------------------------------------------------------------
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 files = ["src/psd", "tests", "scripts"]
 warn_unused_configs = true
 warn_redundant_casts = true
