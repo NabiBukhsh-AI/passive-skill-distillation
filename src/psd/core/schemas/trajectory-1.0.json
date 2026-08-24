@@ -1,0 +1,821 @@
+{
+  "$defs": {
+    "Action": {
+      "additionalProperties": false,
+      "description": "One action. Canonicalization to a stable symbol is ALG-002, not this model's job.",
+      "properties": {
+        "arguments": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Arguments"
+        },
+        "arguments_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Arguments Raw"
+        },
+        "canonical": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Canonical"
+        },
+        "kind": {
+          "enum": [
+            "tool_call",
+            "text_action",
+            "code_execution",
+            "noop"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Action",
+      "type": "object"
+    },
+    "ActionResult": {
+      "additionalProperties": false,
+      "properties": {
+        "error_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Type"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ActionResult",
+      "type": "object"
+    },
+    "Actor": {
+      "additionalProperties": false,
+      "properties": {
+        "decoding": {
+          "$ref": "#/$defs/Decoding"
+        },
+        "mode": {
+          "enum": [
+            "think",
+            "no_think"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "mode_flag": {
+          "additionalProperties": true,
+          "title": "Mode Flag",
+          "type": "object"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "mode",
+        "decoding"
+      ],
+      "title": "Actor",
+      "type": "object"
+    },
+    "Decoding": {
+      "additionalProperties": false,
+      "description": "Decoding parameters. GAP-06: unstated by the paper, pinned by config.",
+      "properties": {
+        "max_tokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Tokens"
+        },
+        "temperature": {
+          "title": "Temperature",
+          "type": "number"
+        },
+        "top_p": {
+          "title": "Top P",
+          "type": "number"
+        }
+      },
+      "required": [
+        "temperature",
+        "top_p"
+      ],
+      "title": "Decoding",
+      "type": "object"
+    },
+    "Harness": {
+      "additionalProperties": false,
+      "properties": {
+        "max_steps": {
+          "title": "Max Steps",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "system_prompt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "System Prompt Sha256",
+          "type": "string"
+        },
+        "tools_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tools Sha256"
+        },
+        "user_simulator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserSimulator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "system_prompt_sha256",
+        "max_steps"
+      ],
+      "title": "Harness",
+      "type": "object"
+    },
+    "Labels": {
+      "additionalProperties": false,
+      "properties": {
+        "annotator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Annotator"
+        },
+        "error_types": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Error Types",
+          "type": "array"
+        },
+        "stall_runs": {
+          "items": {
+            "$ref": "#/$defs/StallRun"
+          },
+          "title": "Stall Runs",
+          "type": "array"
+        }
+      },
+      "title": "Labels",
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "meta": {
+          "additionalProperties": true,
+          "title": "Meta",
+          "type": "object"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ],
+      "title": "Observation",
+      "type": "object"
+    },
+    "Outcome": {
+      "additionalProperties": false,
+      "description": "Terminal outcome.\n\n`reward` is required and non-nullable on purpose. A defaulted reward silently corrupts\nevery win/loss contrast (ALG-006), and a corrupted contrast is invisible: it produces\nplausible numbers. Spec Section 10.3 makes this blocking.",
+      "properties": {
+        "reward": {
+          "title": "Reward",
+          "type": "number"
+        },
+        "step_cap_hit": {
+          "title": "Step Cap Hit",
+          "type": "boolean"
+        },
+        "steps_used": {
+          "minimum": 0,
+          "title": "Steps Used",
+          "type": "integer"
+        },
+        "success": {
+          "title": "Success",
+          "type": "boolean"
+        },
+        "termination": {
+          "title": "Termination",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reward",
+        "success",
+        "termination",
+        "steps_used",
+        "step_cap_hit"
+      ],
+      "title": "Outcome",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "source_run_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Run Id"
+        }
+      },
+      "required": [
+        "source",
+        "content_sha256"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Redaction": {
+      "additionalProperties": false,
+      "properties": {
+        "applied": {
+          "title": "Applied",
+          "type": "boolean"
+        },
+        "counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Counts",
+          "type": "object"
+        },
+        "policy_version": {
+          "title": "Policy Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "applied",
+        "policy_version"
+      ],
+      "title": "Redaction",
+      "type": "object"
+    },
+    "StallRun": {
+      "additionalProperties": false,
+      "description": "One detected stall (ALG-005).",
+      "properties": {
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "length": {
+          "minimum": 0,
+          "title": "Length",
+          "type": "integer"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "action",
+        "length"
+      ],
+      "title": "StallRun",
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Usd"
+        },
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Ms"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "output": {
+          "$ref": "#/$defs/StepOutput"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tokens": {
+          "$ref": "#/$defs/StepTokens"
+        }
+      },
+      "required": [
+        "index",
+        "observation",
+        "output",
+        "action",
+        "tokens"
+      ],
+      "title": "Step",
+      "type": "object"
+    },
+    "StepOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "reasoning_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reasoning Text"
+        },
+        "reasoning_token_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reasoning Token Count"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "StepOutput",
+      "type": "object"
+    },
+    "StepTokens": {
+      "additionalProperties": false,
+      "description": "Per-step token accounting.\n\nEvery field is REQUIRED (no default) and nullable. Omitting a key is a blocking\nviolation; an explicit null means present-but-unreported. See the module docstring and\n`docs/ASSUMPTIONS.md` ASM-002.",
+      "properties": {
+        "input_cached": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Cached"
+        },
+        "input_total": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Total"
+        },
+        "output_reasoning": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Reasoning"
+        },
+        "output_tool_args": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Tool Args"
+        },
+        "output_visible": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Visible"
+        }
+      },
+      "required": [
+        "input_total",
+        "input_cached",
+        "output_visible",
+        "output_tool_args",
+        "output_reasoning"
+      ],
+      "title": "StepTokens",
+      "type": "object"
+    },
+    "Totals": {
+      "additionalProperties": false,
+      "properties": {
+        "cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Usd"
+        },
+        "input_cached_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Cached Tokens"
+        },
+        "input_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Tokens"
+        },
+        "output_reasoning_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Reasoning Tokens"
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Output Tokens"
+        },
+        "turns": {
+          "minimum": 0,
+          "title": "Turns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "output_tokens",
+        "output_reasoning_tokens",
+        "input_tokens",
+        "input_cached_tokens",
+        "turns"
+      ],
+      "title": "Totals",
+      "type": "object"
+    },
+    "UserSimulator": {
+      "additionalProperties": false,
+      "description": "tau-squared only. GAP-08: pinned to the upstream default, recorded per episode.",
+      "properties": {
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "version"
+      ],
+      "title": "UserSimulator",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One complete episode record. Spec Section 10.3, schema `trajectory/1.0`.",
+  "properties": {
+    "actor": {
+      "$ref": "#/$defs/Actor"
+    },
+    "domain": {
+      "title": "Domain",
+      "type": "string"
+    },
+    "ended_at": {
+      "format": "date-time",
+      "title": "Ended At",
+      "type": "string"
+    },
+    "harness": {
+      "$ref": "#/$defs/Harness"
+    },
+    "labels": {
+      "$ref": "#/$defs/Labels"
+    },
+    "normalization_warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Normalization Warnings",
+      "type": "array"
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "redaction": {
+      "$ref": "#/$defs/Redaction"
+    },
+    "schema_version": {
+      "const": "trajectory/1.0",
+      "default": "trajectory/1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "test",
+        "unassigned"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "title": "Steps",
+      "type": "array"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "totals": {
+      "$ref": "#/$defs/Totals"
+    },
+    "trajectory_id": {
+      "title": "Trajectory Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "trajectory_id",
+    "tenant_id",
+    "domain",
+    "task_id",
+    "split",
+    "actor",
+    "harness",
+    "seed",
+    "started_at",
+    "ended_at",
+    "steps",
+    "outcome",
+    "totals",
+    "redaction",
+    "provenance"
+  ],
+  "title": "Trajectory",
+  "type": "object"
+}
