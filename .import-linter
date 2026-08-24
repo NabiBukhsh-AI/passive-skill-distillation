@@ -1,0 +1,64 @@
+# Architecture enforcement (TASK-007, spec Section 18.1).
+#
+# These rules are not suggestions. Spec Section 30.1 rule 4: if a change seems to require
+# violating them, that is a signal the design needs revisiting, which is a conversation,
+# not a workaround.
+#
+# Run with: lint-imports --config .import-linter   (or `make imports`)
+#
+# The negative fixture proving these rules bite lives at
+# tests/contract/test_architecture.py, which writes a deliberately violating module and
+# asserts that import-linter fails on it.
+
+[importlinter]
+root_package = psd
+include_external_packages = False
+
+[importlinter:contract:core-is-pure]
+name = core imports nothing from psd.*
+type = forbidden
+source_modules =
+    psd.core
+forbidden_modules =
+    psd.ingest
+    psd.corpus
+    psd.analysis
+    psd.distill
+    psd.validate
+    psd.registry
+    psd.serving
+    psd.eval
+    psd.adapters
+    psd.gateway
+    psd.deploy
+    psd.ledger
+    psd.loop
+    psd.api
+    psd.cli
+    psd.observability
+
+[importlinter:contract:adapters-are-leaves]
+name = adapters import neither eval nor distill
+type = forbidden
+source_modules =
+    psd.adapters
+forbidden_modules =
+    psd.eval
+    psd.distill
+
+[importlinter:contract:adapters-do-not-import-each-other]
+name = adapters never import each other
+type = independence
+modules =
+    psd.adapters.alfworld
+    psd.adapters.ssb_verified
+    psd.adapters.tau2
+
+[importlinter:contract:serving-is-hot-path-only]
+name = serving imports neither distill nor analysis
+type = forbidden
+source_modules =
+    psd.serving
+forbidden_modules =
+    psd.distill
+    psd.analysis
