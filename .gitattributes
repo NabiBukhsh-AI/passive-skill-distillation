@@ -1,0 +1,33 @@
+# Line endings are a correctness property in this repository, not a style preference.
+#
+# Two things here are byte-exact by requirement:
+#   * Prompt assembly has a byte-exact golden test (TASK-033, spec Section 21.9). The
+#     separator is literally "\n\n", and RR-006 requires the skill body to be appended
+#     verbatim, unmodified.
+#   * Analyzer output must be byte-stable across runs AND across platforms (FR-011,
+#     spec Section 13.3).
+#
+# With core.autocrlf enabled, a Windows checkout would rewrite LF to CRLF and the golden
+# tests would pass locally and fail in Linux CI, or worse, the reverse. Normalize
+# everything to LF in the repository, and exempt the golden fixtures from conversion
+# entirely so nothing can touch them.
+
+* text=auto eol=lf
+
+# Golden and corpus fixtures: treated as binary so no filter, ever.
+tests/fixtures/golden/** -text
+tests/fixtures/trajectories/** -text
+tests/fixtures/skills/** -text
+tests/fixtures/pii/** -text
+
+# Shell scripts must keep LF or they will not execute on Linux.
+*.sh text eol=lf
+
+# Lockfile: hash-verified, never rewritten.
+uv.lock -text
+
+*.png binary
+*.jpg binary
+*.gz binary
+*.parquet binary
+*.xlsx binary
