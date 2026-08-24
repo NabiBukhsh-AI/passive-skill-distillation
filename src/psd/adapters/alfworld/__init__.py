@@ -1,0 +1,1 @@
+"""psd.adapters.alfworld"""

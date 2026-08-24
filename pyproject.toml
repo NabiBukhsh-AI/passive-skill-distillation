@@ -1,0 +1,115 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "psd"
+version = "0.1.0"
+description = "Passive Skill Distillation Platform: turn agent trajectory logs into validated, versioned system-prompt skills. No model training anywhere."
+readme = "README.md"
+license = { text = "MIT" }
+# OPEN DECISION (docs/BENCHMARKS.md): spec Section 13.3 pins 3.11.9, but tau2-bench v1.0.1
+# declares requires-python ">=3.12,<3.14" and R1 needs tau2-retail. ">=3.11" forecloses
+# neither option. Do not narrow this without updating docs/DEVIATIONS.md.
+requires-python = ">=3.11"
+
+dependencies = [
+    "pydantic>=2.9,<3",
+    "polars>=1.9,<2",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "httpx>=0.27",
+    "typer>=0.12",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+psd = "psd.cli.main:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.112",
+    "mypy>=1.11",
+    "ruff==0.16.4",   # pinned: .pre-commit-config.yaml must match exactly
+    "import-linter>=2.1",
+    "pre-commit>=3.8",
+    "types-pyyaml>=6.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/psd"]
+
+# ---------------------------------------------------------------------------
+# ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "SIM", "RUF"]
+ignore = [
+    "A003",   # class attribute shadowing a builtin: `Analyzer.name` is a port field name
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test fixtures deliberately contain odd shapes, and asserts are the point.
+"tests/**" = ["B011"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["psd"]
+
+# ---------------------------------------------------------------------------
+# mypy: strict on core, ordinary elsewhere (spec Section 18.1)
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+files = ["src/psd", "tests", "scripts"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+check_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# src/psd/core is a contract. Types there are documentation that cannot rot.
+module = "psd.core.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+# -ra surfaces skipped tests. A silently skipped test is the most common way an
+# acceptance criterion goes unasserted (spec Section 30.1 rule 7).
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "security: blocking security suite; never skipped, never xfail (spec Section 21.10)",
+    "integration: needs database, object storage, or the stub distiller",
+    "e2e: end-to-end reproduction paths",
+    "slow: excluded from the default merge-gating run",
+    "credentials: needs live model credentials; opt-in only",
+]
+
+[tool.coverage.run]
+source = ["src/psd"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@overload",
+]

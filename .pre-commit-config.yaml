@@ -1,0 +1,39 @@
+# Installed by `make setup`.
+#
+# The first hook is the important one. This repository is public and sits next to a
+# private directory containing the specification. Build playbook Section 2 offers the
+# private-file check as "a pre-commit hook if you want it enforced rather than remembered".
+# Enforced beats remembered: a leaked spec cannot be un-leaked.
+
+repos:
+  - repo: local
+    hooks:
+      - id: block-private-files
+        name: block private specification files from the public repo
+        entry: python scripts/check_no_private_files.py
+        language: system
+        pass_filenames: true
+        always_run: true
+
+  # Pinned to the exact ruff in uv.lock. A hook on a different ruff version fights the
+  # project's `make lint`: one reformats, the other rejects, and neither is wrong.
+  # Bump this and the pyproject dev pin together, never separately.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        # The golden fixtures pin prompt assembly byte-exactly. Trailing whitespace in
+        # them is data, not a defect: TASK-033 requires a mutation test proving that
+        # normalising it FAILS the golden test.
+        exclude: ^tests/fixtures/golden/
