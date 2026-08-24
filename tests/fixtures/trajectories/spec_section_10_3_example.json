@@ -1,0 +1,92 @@
+{
+  "schema_version": "trajectory/1.0",
+  "trajectory_id": "trj_01J8Z5X9A2B3C4D5E6F7G8H9",
+  "tenant_id": "t_default",
+  "domain": "tau2_retail",
+  "task_id": "retail_train_017",
+  "split": "train",
+  "actor": {
+    "model": "gpt-5.4-mini",
+    "mode": "no_think",
+    "mode_flag": {"reasoning_effort": "none"},
+    "decoding": {"temperature": 0.0, "top_p": 1.0, "max_tokens": 2048}
+  },
+  "harness": {
+    "name": "tau2_runner",
+    "version": "2026.06.1",
+    "system_prompt_sha256": "a3f1e0c58b2d4a7690f31c5d8e2b64a90d17c3f5b8e2a4160d9c7b3a5f8e1240",
+    "tools_sha256": "9c2b7d41a6e08f35c19b4d72a8e05f36c47b19d0a82e6f45c93b1d70a5e28f61",
+    "max_steps": 30,
+    "user_simulator": {"model": "UNKNOWN", "version": "UNKNOWN"}
+  },
+  "seed": 1,
+  "started_at": "2026-08-01T09:12:03Z",
+  "ended_at": "2026-08-01T09:13:41Z",
+  "steps": [
+    {
+      "index": 0,
+      "observation": {
+        "kind": "user_turn",
+        "text": "Hi, I want to check my recent orders.",
+        "meta": {}
+      },
+      "output": {
+        "text": "Let me look that up.",
+        "reasoning_text": null,
+        "reasoning_token_count": 0
+      },
+      "action": {
+        "kind": "tool_call",
+        "name": "find_user_id_by_email",
+        "arguments": {"email": "customer@example.com"},
+        "arguments_raw": "{\"email\": \"customer@example.com\"}",
+        "canonical": "tool:find_user_id_by_email(email:str)"
+      },
+      "result": {
+        "status": "error",
+        "error_type": "not_found",
+        "text": "No user found for the provided email."
+      },
+      "tokens": {
+        "input_total": 4120,
+        "input_cached": 3800,
+        "output_visible": 12,
+        "output_tool_args": 9,
+        "output_reasoning": 0
+      },
+      "latency_ms": 840,
+      "cost_usd": 0.00121
+    }
+  ],
+  "outcome": {
+    "reward": 0.0,
+    "success": false,
+    "termination": "user_gave_up",
+    "steps_used": 14,
+    "step_cap_hit": false
+  },
+  "totals": {
+    "output_tokens": 512,
+    "output_reasoning_tokens": 0,
+    "input_tokens": 61400,
+    "input_cached_tokens": 55800,
+    "turns": 14,
+    "cost_usd": 0.0192
+  },
+  "labels": {
+    "error_types": ["fabricated_auth_argument"],
+    "stall_runs": [],
+    "annotator": "analyzer/1.2.0"
+  },
+  "redaction": {
+    "applied": true,
+    "policy_version": "redaction/1.1",
+    "counts": {"EMAIL": 3, "PHONE": 1}
+  },
+  "provenance": {
+    "source": "harness_run",
+    "source_run_id": "run_2026_08_01_a",
+    "content_sha256": "e14d9b7c0a5f38261bd4e07c9a3f5182b6d0e4c7a19f38b5d206c4e18a7f3b95"
+  },
+  "normalization_warnings": []
+}
