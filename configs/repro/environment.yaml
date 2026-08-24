@@ -1,0 +1,106 @@
+# Reproduction environment pin (TASK-003, spec Section 13.3).
+#
+# Every benchmark is pinned by commit, never by tag or version range. Benchmark drift is
+# the most common cause of unreproducible agentic results and it is entirely preventable.
+# Tag names appear only as a human-readable note beside the SHA that is the actual pin.
+#
+# Evidence for every claim in this file is in docs/BENCHMARKS.md, verified 2026-08-24
+# against the upstream repositories at these commits.
+
+python: "3.11.9"
+# OPEN DECISION, see docs/BENCHMARKS.md "Open decision for the maintainer".
+#   tau2-bench v1.0.1 declares requires-python ">=3.12,<3.14" and therefore CANNOT install
+#   on 3.11.9. Verified by dry run. ALFWorld's textworld[pddl] resolves on both 3.11.9 and
+#   3.12, so 3.12 satisfies both benchmarks. R1 (Stage 5) needs tau2-retail, so this is not
+#   deferrable to Stage 10.
+#   Until the maintainer decides, pyproject.toml declares requires-python ">=3.11" so that
+#   neither option is foreclosed. Do not resolve this by silently editing the line above.
+
+lockfile: uv.lock            # exact, committed, hash-verified
+container_base: python:3.11-slim   # TODO(validate): pin by digest, not tag, before R1
+
+core:
+  - pydantic==2.*
+  - polars==1.*
+  - numpy
+  - scipy
+  - httpx
+  - openpyxl                  # SSB-Verified execution path (RR-013)
+  - pandas                    # SSB-Verified execution path (RR-013)
+
+benchmarks:
+  alfworld:
+    source: https://github.com/alfworld/alfworld
+    pin: "1558ba46d078279ecb4c5d33a6cdffc96714a2d2"
+    pin_note: "tag 0.4.2; the SHA is the pin"
+    status: runnable
+    python_ok: ["3.11.9", "3.12"]
+    entry_point: "alfworld.env, driven directly by our adapter (TASK-035)"
+    assets_required: true
+    assets:
+      env_var: ALFWORLD_DATA
+      command: "alfworld-download"
+      artifacts:
+        - "json_2.1.1_json.zip (release 0.2.2)"
+        - "json_2.1.1_pddl.zip (release 0.2.2)"
+        - "json_2.1.2_tw-pddl.zip (release 0.4.0)"
+    step_cap:
+      paper: 40               # RR-012, spec Section 5.3
+      upstream_default: 50    # configs/base_config.yaml, max_nb_steps_per_episode
+      note: >-
+        The adapter MUST set 40 explicitly and record it. Inheriting the upstream 50 would
+        change success rate and mean turns invisibly.
+    metric: win_rate
+    note: "UNKNOWN which version the paper used; 0.4.2 is the newest tag at pin time."
+
+  spreadsheetbench:
+    source: https://github.com/RUCKBReasoning/SpreadsheetBench
+    pin: "49b73a94775fb489063f60ca1865e3a650079a79"
+    pin_note: "branch main; upstream publishes no tags, so a SHA is the only possible pin"
+    status: runnable_with_caveats
+    verified_subset:
+      resolved: true          # GAP-10 moved from blocked to pinned-default by TASK-003
+      artifact: "data/spreadsheetbench_verified_400.tar.gz"
+      blob_sha1: "b6baaf0f23ef5adc1cd22078f4eeb3102b4a7c72"
+      size_bytes: 14958255
+      instances: 400
+      note: >-
+        Expert-annotated subset published 2025/12 with Shortcut.AI. The subset IS defined
+        upstream. Which 50 train / 50 test instances the paper drew from it is GAP-09 and
+        remains unpublished.
+    do_not_use_upstream_requirements: true
+    upstream_requirements_defect: >-
+      requirements.txt is internally unsatisfiable on every interpreter: numpy==1.22.2
+      contradicts pandas==2.2.0, which requires numpy>=1.23.2,<2. Resolve our own set.
+    system_dependencies:
+      - "LibreOffice >= 7.5 (evaluation/open_spreadsheet.py formula recalculation backend)"
+    metric: modification_accuracy
+
+  tau2_bench:
+    source: https://github.com/sierra-research/tau2-bench
+    pin: "fc0055dc4e0a316c3f83133267fbd6faaa770992"
+    pin_note: "tag v1.0.1 peeled; tag object is b711c1ead46f55111bf765cf44d5da8bacc2d28c"
+    status: blocked_on_python_decision
+    requires_python: ">=3.12,<3.14"
+    domains: [retail, telecom]
+    splits_from_upstream: "data/tau2/domains/<domain>/split_tasks.json"
+    user_simulator:
+      resolved: true          # GAP-08 moved from blocked to pinned-default by TASK-003
+      implementation: "user_simulator"
+      model: "gpt-4.1-2025-04-14"
+      temperature: 0.0
+      source: "src/tau2/config.py at the pinned commit"
+      note: >-
+        These are the upstream v1.0.1 defaults, not a statement about what the paper used.
+        Pin them, hash the prompt, record both per episode, and treat any change as a
+        harness version bump that invalidates existing evaluations (FR-045, TASK-072).
+    upstream_defaults:
+      max_steps: 200
+      max_errors: 10
+      seed: 300
+    metric: pass_rate
+
+determinism:
+  PYTHONHASHSEED: "0"
+  numpy_seed_policy: "explicit per unit"
+  analyzer_sort: "total order on all outputs"
