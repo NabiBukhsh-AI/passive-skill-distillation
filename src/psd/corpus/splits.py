@@ -26,6 +26,7 @@ import json
 import random
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from psd.core.models import Split, SplitCounts, SplitSampling
 
@@ -182,3 +183,92 @@ def task_split_map(split: Split) -> dict[str, str]:
     mapping = dict.fromkeys(split.train_task_ids, "train")
     mapping.update(dict.fromkeys(split.test_task_ids, "test"))
     return mapping
+
+
+# ---------------------------------------------------------------------------
+# Database-backed store (TASK-013)
+# ---------------------------------------------------------------------------
+
+
+class SplitStore:
+    """Persist splits to PostgreSQL, where the database enforces disjointness.
+
+    The `Split` model already refuses an overlapping split, so this looks redundant. It
+    is not. An application-layer check protects the code path you thought of; a database
+    constraint protects every path, including a manual `UPDATE` during an incident and a
+    future service that talks to the same table without going through this module.
+
+    TASK-013's acceptance is specifically that an overlapping split "raises at the
+    database layer, not only in Python", so the store deliberately does NOT re-validate
+    before inserting: the test needs the insert to reach the trigger.
+    """
+
+    def __init__(self, connection: Any) -> None:
+        self._connection = connection
+
+    def insert(self, split: Split, split_id: str, tenant_domain: str | None = None) -> str:
+        """Insert a split. Raises whatever the database raises."""
+        self._connection.execute(
+            """
+            INSERT INTO splits
+                (split_id, domain_id, sha256, train_task_ids, test_task_ids, strategy, seed)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                split_id,
+                tenant_domain or split.domain,
+                split.sha256,
+                list(split.train_task_ids),
+                list(split.test_task_ids),
+                split.sampling.strategy,
+                split.sampling.seed,
+            ),
+        )
+        return split_id
+
+    def insert_raw(
+        self,
+        split_id: str,
+        domain_id: str,
+        sha256: str,
+        train_task_ids: list[str],
+        test_task_ids: list[str],
+        strategy: str = "random_once_fixed",
+        seed: int = 0,
+    ) -> str:
+        """Insert without constructing a `Split` first.
+
+        Exists so the database-level constraint can be tested directly. Building a
+        `Split` with overlapping halves is impossible (the model validator refuses), so
+        without this path there would be no way to demonstrate that the trigger fires,
+        and TASK-013's acceptance criterion would be untestable.
+        """
+        self._connection.execute(
+            """
+            INSERT INTO splits
+                (split_id, domain_id, sha256, train_task_ids, test_task_ids, strategy, seed)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (split_id, domain_id, sha256, train_task_ids, test_task_ids, strategy, seed),
+        )
+        return split_id
+
+    def get(self, split_id: str) -> dict[str, Any] | None:
+        row = self._connection.execute(
+            """
+            SELECT split_id, domain_id, sha256, train_task_ids, test_task_ids, strategy, seed
+            FROM splits WHERE split_id = %s
+            """,
+            (split_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return {
+            "split_id": row[0],
+            "domain_id": row[1],
+            "sha256": row[2],
+            "train_task_ids": row[3],
+            "test_task_ids": row[4],
+            "strategy": row[5],
+            "seed": row[6],
+        }

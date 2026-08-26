@@ -46,6 +46,11 @@ jobs:
       - name: Unit, property, and contract tests
         run: uv run pytest tests/unit tests/property tests/contract
 
+      # Starts a real PostgreSQL 16 from the pgserver wheel. TASK-013's acceptance is a
+      # DATABASE-level constraint, which cannot be demonstrated against a mock.
+      - name: Integration tests (real PostgreSQL)
+        run: uv run pytest tests/integration
+
   # Separate job so it cannot be lost inside a long log, and so a red security run is
   # unmistakable. Spec Section 21.1: blocking, never skippable.
   security:

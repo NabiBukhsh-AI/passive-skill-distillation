@@ -11,7 +11,7 @@ UV ?= uv
 # See docs/DEVIATIONS.md DEV-006.
 UV_PYTHON ?= 3.12
 
-.PHONY: setup lint format typecheck gaps imports test test-security check \
+.PHONY: setup lint format typecheck gaps imports test test-integration test-security check \
         reproduce-r0 reproduce-r1 clean help
 
 help:
@@ -22,6 +22,7 @@ help:
 	@echo "gaps           validate docs/GAPS.md (TASK-001)"
 	@echo "imports        enforce the architecture rules (TASK-007)"
 	@echo "test           unit, property, and contract suites"
+	@echo "test-integration  database-backed suites (starts a real PostgreSQL)"
 	@echo "test-security  blocking security suite, never skip"
 	@echo "check          lint + typecheck + gaps + imports + test"
 	@echo "reproduce-r0   smoke reproduction, stub distiller"
@@ -50,6 +51,11 @@ imports:
 
 test:
 	$(UV) run pytest tests/unit tests/property tests/contract
+
+# Spins up a real PostgreSQL via pgserver. Slower, so it is a separate target, but it
+# gates merge in CI: TASK-013's acceptance is a DATABASE-level constraint.
+test-integration:
+	$(UV) run pytest tests/integration
 
 # Blocking. Spec Section 21.1 and TASK-069: this suite may never be skipped or xfailed,
 # and may not be disabled by configuration.

@@ -22,6 +22,9 @@ dependencies = [
     "httpx>=0.27",
     "typer>=0.12",
     "pyyaml>=6.0",
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+    "psycopg[binary]>=3.2",
 ]
 
 [project.scripts]
@@ -37,6 +40,11 @@ dev = [
     "import-linter>=2.1",
     "pre-commit>=3.8",
     "types-pyyaml>=6.0",
+    "httpx>=0.27",
+    # Runs a real PostgreSQL 16 server from a wheel, with no admin rights and no
+    # container runtime. TASK-013's acceptance is that an overlapping split raises at the
+    # DATABASE layer, which cannot be demonstrated against a mock.
+    "pgserver>=0.1.4 ; sys_platform != 'darwin' or platform_machine != 'arm64'",
 ]
 
 [tool.hatch.build.targets.wheel]
