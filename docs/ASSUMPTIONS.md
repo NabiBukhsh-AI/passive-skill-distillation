@@ -161,3 +161,37 @@ set scores each case under the policy it belongs to.
 **Where it bites:** TASK-012 recall and precision on the labeled set, TASK-014 (the
 manifest records the redaction policy version), and the quality of any skill distilled
 from a telecom corpus.
+
+### ASM-007 A task's outcome for sampling is its `no_think` trajectory's outcome
+Dated 2026-08-24.
+
+ALG-001 Step 4 offers `stratified_by_outcome` and `failure_weighted` sampling strategies,
+both of which need each TASK to have an outcome. Under `paired` composition a task carries
+two trajectories that can disagree: the think arm succeeds and the no-think arm fails,
+which is precisely the interesting case.
+
+The paper probably meant the outcome of the mode being improved, since the whole method is
+derived from where the non-reasoning model fails.
+
+**What we do:** a task counts as successful when its `no_think` trajectory succeeded. When
+no `no_think` arm exists, fall back to whether any arm succeeded.
+
+**Where it bites:** ALG-001 Step 4 under both outcome-aware strategies, and therefore the
+composition of any corpus not built with `strategy=all`. The reproduction path uses
+`all`, so this does not affect R1.
+
+### ASM-008 `share_of_all_errors` is computed against the taxonomy in force
+Dated 2026-08-24.
+
+The paper reports that the retail fabricated-argument bug accounts for 94% of observed
+TOOL ERRORS. ALG-003 defines `share_of_all_errors` as
+`occurrences[e] / total_error_events`, where the denominator is every event the taxonomy
+produced. Those coincide only when the taxonomy contains nothing but tool-error detectors.
+
+**What we do:** compute the ratio against whatever taxonomy is in force, and record the
+taxonomy version on every report, so the denominator is always stated rather than assumed.
+Reproducing the paper's 94% requires restricting the taxonomy to tool errors, which the
+fixture test does explicitly.
+
+**Where it bites:** any comparison of our error tables against the paper's percentages.
+A report read without its `taxonomy_version` is not interpretable.
