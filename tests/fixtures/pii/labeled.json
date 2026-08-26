@@ -1,0 +1,388 @@
+{
+  "_comment": [
+    "Labeled PII fixture set for TASK-012. `expected` lists every substring that MUST be",
+    "redacted. Items with an empty `expected` are negative controls: they contain text that",
+    "looks like PII to a naive regex and must survive untouched.",
+    "",
+    "The negatives are not padding. C-03 names over-redaction as the highest risk in this",
+    "component, because a distiller cannot find a pattern in text that has been scrubbed",
+    "into uniformity. Order numbers, totals, version strings, and dates all live in agent",
+    "transcripts and all resemble phone numbers or national ids.",
+    "",
+    "`policy` selects the redaction policy a case is scored under. Omitted means default.",
+    "'strict_phone' cases are scored under the telecom policy, where a bare digit run is a",
+    "subscriber number rather than an order id. That tradeoff is ASM-006, not a detector bug."
+  ],
+  "cases": [
+    {
+      "id": "email_plain",
+      "text": "Contact me at alice@example.com please.",
+      "expected": [
+        "alice@example.com"
+      ]
+    },
+    {
+      "id": "email_plus",
+      "text": "Use bob.smith+orders@sub.example.co.uk for this.",
+      "expected": [
+        "bob.smith+orders@sub.example.co.uk"
+      ]
+    },
+    {
+      "id": "email_two_distinct",
+      "text": "From carol@example.com to dave@example.net",
+      "expected": [
+        "carol@example.com",
+        "dave@example.net"
+      ]
+    },
+    {
+      "id": "email_in_json",
+      "text": "{\"email\": \"erin@example.org\"}",
+      "expected": [
+        "erin@example.org"
+      ]
+    },
+    {
+      "id": "email_uppercase",
+      "text": "Frank.Miller@EXAMPLE.COM is the account",
+      "expected": [
+        "Frank.Miller@EXAMPLE.COM"
+      ]
+    },
+    {
+      "id": "email_hyphen_domain",
+      "text": "reach grace@my-shop-online.com today",
+      "expected": [
+        "grace@my-shop-online.com"
+      ]
+    },
+    {
+      "id": "email_numeric_local",
+      "text": "user12345@example.com signed up",
+      "expected": [
+        "user12345@example.com"
+      ]
+    },
+    {
+      "id": "email_trailing_period",
+      "text": "Send to henry@example.com.",
+      "expected": [
+        "henry@example.com"
+      ]
+    },
+    {
+      "id": "card_visa",
+      "text": "Card 4111 1111 1111 1111 on file",
+      "expected": [
+        "4111 1111 1111 1111"
+      ]
+    },
+    {
+      "id": "card_visa_dashes",
+      "text": "Charged 4111-1111-1111-1111 today",
+      "expected": [
+        "4111-1111-1111-1111"
+      ]
+    },
+    {
+      "id": "card_visa_bare",
+      "text": "PAN 4111111111111111 stored",
+      "expected": [
+        "4111111111111111"
+      ]
+    },
+    {
+      "id": "card_mastercard",
+      "text": "The card 5555555555554444 was declined",
+      "expected": [
+        "5555555555554444"
+      ]
+    },
+    {
+      "id": "card_amex",
+      "text": "Amex 378282246310005 authorised",
+      "expected": [
+        "378282246310005"
+      ]
+    },
+    {
+      "id": "card_discover",
+      "text": "Using 6011111111111117 instead",
+      "expected": [
+        "6011111111111117"
+      ]
+    },
+    {
+      "id": "ssn_dashed",
+      "text": "SSN 123-45-6789 verified",
+      "expected": [
+        "123-45-6789"
+      ]
+    },
+    {
+      "id": "ssn_in_sentence",
+      "text": "Her social is 078-05-1120 on record",
+      "expected": [
+        "078-05-1120"
+      ]
+    },
+    {
+      "id": "phone_us_dashes",
+      "text": "Call 555-123-4567 after noon",
+      "expected": [
+        "555-123-4567"
+      ]
+    },
+    {
+      "id": "phone_us_parens",
+      "text": "Reach (415) 555-2671 for support",
+      "expected": [
+        "(415) 555-2671"
+      ]
+    },
+    {
+      "id": "phone_intl",
+      "text": "Try +44 20 7946 0958 in the morning",
+      "expected": [
+        "+44 20 7946 0958"
+      ]
+    },
+    {
+      "id": "phone_dots",
+      "text": "Fax is 555.867.5309 currently",
+      "expected": [
+        "555.867.5309"
+      ]
+    },
+    {
+      "id": "iban_gb",
+      "text": "Transfer to GB33BUKB20201555555555 now",
+      "expected": [
+        "GB33BUKB20201555555555"
+      ]
+    },
+    {
+      "id": "iban_de",
+      "text": "Account DE89370400440532013000 confirmed",
+      "expected": [
+        "DE89370400440532013000"
+      ]
+    },
+    {
+      "id": "mixed_email_and_phone",
+      "text": "Email ian@example.com or call 555-123-4567",
+      "expected": [
+        "ian@example.com",
+        "555-123-4567"
+      ]
+    },
+    {
+      "id": "mixed_card_and_email",
+      "text": "jane@example.com paid with 4111111111111111",
+      "expected": [
+        "jane@example.com",
+        "4111111111111111"
+      ]
+    },
+    {
+      "id": "neg_no_pii",
+      "text": "The order shipped yesterday and arrived today.",
+      "expected": []
+    },
+    {
+      "id": "neg_order_number",
+      "text": "Order #W2378156 is being processed",
+      "expected": []
+    },
+    {
+      "id": "neg_order_digits",
+      "text": "Order number 8471629503 is confirmed",
+      "expected": []
+    },
+    {
+      "id": "neg_price",
+      "text": "The total came to 1249.99 for both items",
+      "expected": []
+    },
+    {
+      "id": "neg_date_iso",
+      "text": "Delivered on 2026-08-24 by courier",
+      "expected": []
+    },
+    {
+      "id": "neg_date_slash",
+      "text": "Scheduled for 08/24/2026 in the morning",
+      "expected": []
+    },
+    {
+      "id": "neg_version",
+      "text": "Running harness version 2026.06.1 currently",
+      "expected": []
+    },
+    {
+      "id": "neg_semver",
+      "text": "Upgrade to 1.22.2 to fix the bug",
+      "expected": []
+    },
+    {
+      "id": "neg_sku",
+      "text": "SKU 1122334455 is out of stock",
+      "expected": []
+    },
+    {
+      "id": "neg_tracking",
+      "text": "Tracking 1Z999AA10123456784 is in transit",
+      "expected": []
+    },
+    {
+      "id": "neg_luhn_fail",
+      "text": "Reference 4111111111111112 is not a card",
+      "expected": []
+    },
+    {
+      "id": "neg_ssn_shaped_ref",
+      "text": "Case 666-45-6789 was escalated",
+      "expected": []
+    },
+    {
+      "id": "neg_ssn_area_900",
+      "text": "Ref 900-45-6789 from the old system",
+      "expected": []
+    },
+    {
+      "id": "neg_at_sign_not_email",
+      "text": "Meet @ the warehouse at 5",
+      "expected": []
+    },
+    {
+      "id": "neg_handle",
+      "text": "Ping @support in the channel",
+      "expected": []
+    },
+    {
+      "id": "neg_percentage",
+      "text": "Refund of 15.5 percent was applied",
+      "expected": []
+    },
+    {
+      "id": "neg_quantity",
+      "text": "We shipped 3 of 12 units so far",
+      "expected": []
+    },
+    {
+      "id": "neg_tool_name",
+      "text": "Called find_user_id_by_email with no arguments",
+      "expected": []
+    },
+    {
+      "id": "neg_error_code",
+      "text": "Failed with error 500 after 30 seconds",
+      "expected": []
+    },
+    {
+      "id": "neg_hash",
+      "text": "Content hash a3f1e0c58b2d4a7690f31c5d8e2b64a9 recorded",
+      "expected": []
+    },
+    {
+      "id": "neg_currency_code",
+      "text": "Charged in USD 42.00 as agreed",
+      "expected": []
+    },
+    {
+      "id": "neg_zip",
+      "text": "Shipping to 94105 as requested",
+      "expected": []
+    },
+    {
+      "id": "neg_short_digits",
+      "text": "Aisle 12 shelf 34 bin 56",
+      "expected": []
+    },
+    {
+      "id": "neg_time_range",
+      "text": "Available 9-5 on weekdays",
+      "expected": []
+    },
+    {
+      "id": "neg_step_counter",
+      "text": "Step 14 of 40 completed",
+      "expected": []
+    },
+    {
+      "id": "email_url_query",
+      "text": "?email=kate@example.com&next=1",
+      "expected": [
+        "kate@example.com"
+      ]
+    },
+    {
+      "id": "email_in_parens",
+      "text": "Owner (liam@example.com) approved",
+      "expected": [
+        "liam@example.com"
+      ]
+    },
+    {
+      "id": "email_quoted",
+      "text": "he said \"mia@example.com\" twice",
+      "expected": [
+        "mia@example.com"
+      ]
+    },
+    {
+      "id": "email_repeated",
+      "text": "noah@example.com then noah@example.com again",
+      "expected": [
+        "noah@example.com",
+        "noah@example.com"
+      ]
+    },
+    {
+      "id": "card_mixed_separators",
+      "text": "Card 4111-1111 1111-1111 charged",
+      "expected": [
+        "4111-1111 1111-1111"
+      ]
+    },
+    {
+      "id": "phone_intl_parens",
+      "text": "Call +1 (415) 555-2671 now",
+      "expected": [
+        "+1 (415) 555-2671"
+      ]
+    },
+    {
+      "id": "neg_email_no_tld",
+      "text": "user@localhost is internal only",
+      "expected": []
+    },
+    {
+      "id": "neg_card_too_long",
+      "text": "PAN 6011111111111117111 in the log",
+      "expected": []
+    },
+    {
+      "id": "phone_bare_strict",
+      "text": "Call 5551234567 now",
+      "expected": [
+        "5551234567"
+      ],
+      "policy": "strict_phone"
+    },
+    {
+      "id": "phone_bare_intl_strict",
+      "text": "Subscriber 447700900123 active",
+      "expected": [
+        "447700900123"
+      ],
+      "policy": "strict_phone"
+    },
+    {
+      "id": "neg_phone_bare_default",
+      "text": "Order number 8471629503 is confirmed",
+      "expected": []
+    }
+  ]
+}

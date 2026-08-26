@@ -135,3 +135,29 @@ never inherit the platform default, because the repro config sets it explicitly 
 than relying on a code-level fallback.
 
 **Where it bites:** TASK-029, and the validity of every Table 2 comparison.
+
+### ASM-006 Bare digit runs are redacted as phone numbers only under a per-domain policy
+Dated 2026-08-24.
+
+Spec Section 9 (C-03) requires redaction of phone numbers and simultaneously names
+over-redaction as the highest risk in that component, because a distiller cannot find a
+pattern in text that has been scrubbed into uniformity. Those two pull in opposite
+directions on one specific input: a bare run of 10 to 15 digits.
+
+In a tau2-retail transcript, `8471629503` is an order number, and redacting it destroys
+exactly the kind of identifier the distiller reasons about. In a tau2-telecom transcript,
+the same string is a subscriber number and must not reach a skill. Nothing in the text
+distinguishes them.
+
+**What we do:** the default policy requires punctuation or a leading `+` before it will
+claim a digit run as a phone number, so bare runs survive. A `strict_phone` policy adds a
+bare-digit-run detector and is enabled per domain in the domain profile. `TELECOM_POLICY`
+sets it; `DEFAULT_POLICY` does not.
+
+The cost is explicit and tested: under `strict_phone`, order numbers ARE redacted. That
+is why it is a per-domain switch rather than a global default, and why the labeled fixture
+set scores each case under the policy it belongs to.
+
+**Where it bites:** TASK-012 recall and precision on the labeled set, TASK-014 (the
+manifest records the redaction policy version), and the quality of any skill distilled
+from a telecom corpus.
