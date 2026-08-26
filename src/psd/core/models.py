@@ -353,6 +353,10 @@ class CorpusManifest(StrictModel):
     merkle_root: Sha256
     counts: dict[str, int] = Field(default_factory=dict)
     dropped_unpaired: list[str] = Field(default_factory=list)
+    #: Non-fatal conditions recorded at build time (ALG-001 edge cases). Carried in the
+    #: manifest rather than a side file so they are inside the content address: a corpus
+    #: cannot be separated from the caveats it was built with.
+    build_warnings: list[str] = Field(default_factory=list)
     analyzer_lib_version: str
     redaction_policy_version: str
     created_at: datetime
