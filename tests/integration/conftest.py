@@ -49,7 +49,9 @@ def connection(postgres_uri: str) -> Iterator[Any]:
     with psycopg.connect(postgres_uri, autocommit=True) as conn:
         # Each test gets its own rows. Truncating rather than recreating the schema keeps
         # the migration cost at once per session.
-        conn.execute("TRUNCATE splits, domains, tenants RESTART IDENTITY CASCADE")
+        conn.execute(
+            "TRUNCATE splits, instructions, audit_log, domains, tenants RESTART IDENTITY CASCADE"
+        )
         conn.execute("INSERT INTO tenants (tenant_id, name) VALUES ('t_test', 'test tenant')")
         for domain in ("alfworld", "tau2_retail"):
             conn.execute(
