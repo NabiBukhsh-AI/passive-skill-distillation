@@ -56,13 +56,49 @@ def merkle_root(file_hashes: list[str]) -> str:
     return hashlib.sha256(joined).hexdigest()
 
 
-def trajectory_bytes(trajectory: Trajectory) -> bytes:
+#: ALG-007 Step 2, GAP-04. What the distiller is allowed to see about outcomes.
+#:
+#:   mode_level  only `pass_rates.json`. The paper says `A` reads trajectory files and
+#:               mode-level pass rates, so this is the reproduction default.
+#:   per_task    per-episode rewards left in place.
+REWARD_VISIBILITY_MODE_LEVEL = "mode_level"
+REWARD_VISIBILITY_PER_TASK = "per_task"
+
+#: Stripped from every materialized episode under `mode_level`.
+#:
+#: `reward` is the field ALG-007 Step 2 names. `success` goes with it because it is the
+#: same fact as a boolean: leaving it would let the distiller reconstruct per-task
+#: outcomes exactly, which is the thing the switch exists to prevent. Recorded as ASM-008.
+#:
+#: Deliberately NOT stripped: `termination`, `steps_used`, `step_cap_hit`. Those describe
+#: how an episode ended rather than whether it scored, and the method is failure-derived,
+#: so removing them would gut the corpus to protect a distinction they do not carry.
+_PER_TASK_OUTCOME_FIELDS = ("reward", "success")
+
+
+def strip_per_task_rewards(payload: dict[str, Any]) -> dict[str, Any]:
+    """ALG-007 Step 2. Remove per-task reward fields from a materialized episode."""
+    outcome = payload.get("outcome")
+    if isinstance(outcome, dict):
+        payload["outcome"] = {
+            key: value for key, value in outcome.items() if key not in _PER_TASK_OUTCOME_FIELDS
+        }
+    return payload
+
+
+def trajectory_bytes(
+    trajectory: Trajectory, reward_visibility: str = REWARD_VISIBILITY_PER_TASK
+) -> bytes:
     """Byte-stable serialization of one trajectory.
 
     Sorted keys and a fixed separator. The Merkle root is taken over these bytes, so any
-    instability here would make a corpus non-reproducible.
+    instability here would make a corpus non-reproducible. Stripping rewards therefore
+    changes the Merkle root, which is correct: a corpus the distiller sees differently is
+    a different corpus and must not share an address with one it sees in full.
     """
     payload = json.loads(trajectory.model_dump_json())
+    if reward_visibility == REWARD_VISIBILITY_MODE_LEVEL:
+        payload = strip_per_task_rewards(payload)
     return (json.dumps(payload, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode(
         "utf-8"
     )
@@ -76,14 +112,25 @@ def materialize(
     *,
     analyzer_lib_source: Path | None = None,
     precomputed: dict[str, Any] | None = None,
+    reward_visibility: str = REWARD_VISIBILITY_MODE_LEVEL,
 ) -> str:
     """Write the spec Section 10.5 layout and return the Merkle root.
 
-    `precomputed` is omitted entirely when None, which removes `analysis/precomputed/`.
-    Spec Section 10.5 requires it off in the reproduction path, where the paper's agent
-    writes and runs its own analysis code; providing precomputed reports there would
-    change the method rather than implement it.
+    ALG-007 Step 2, `reward_visibility`: under `mode_level` (the reproduction default,
+    GAP-04) per-task reward fields are stripped from every materialized episode, leaving
+    only `pass_rates.json`. The stripping happens HERE rather than in the orchestrator so
+    that no code path can hand the distiller a corpus the switch never touched.
+
+    ALG-007 Step 3, `precomputed`: omitted entirely when None, which removes
+    `analysis/precomputed/`. Spec Section 10.5 requires it off in the reproduction path,
+    where the paper's agent writes and runs its own analysis code; providing precomputed
+    reports there would change the method rather than implement it.
     """
+    if reward_visibility not in {REWARD_VISIBILITY_MODE_LEVEL, REWARD_VISIBILITY_PER_TASK}:
+        raise ValueError(
+            f"unknown reward_visibility {reward_visibility!r}; "
+            f"expected {REWARD_VISIBILITY_MODE_LEVEL!r} or {REWARD_VISIBILITY_PER_TASK!r}"
+        )
     destination.mkdir(parents=True, exist_ok=True)
     hashes: list[str] = []
 
@@ -91,7 +138,7 @@ def materialize(
         mode_dir = destination / "trajectories" / mode
         mode_dir.mkdir(parents=True, exist_ok=True)
         for trajectory in sorted(trajectories_by_mode[mode], key=lambda t: t.task_id):
-            data = trajectory_bytes(trajectory)
+            data = trajectory_bytes(trajectory, reward_visibility)
             (mode_dir / f"{trajectory.task_id}.json").write_bytes(data)
             hashes.append(content_sha256(data))
 

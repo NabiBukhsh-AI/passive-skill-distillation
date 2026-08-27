@@ -195,3 +195,26 @@ fixture test does explicitly.
 
 **Where it bites:** any comparison of our error tables against the paper's percentages.
 A report read without its `taxonomy_version` is not interpretable.
+
+### ASM-008 `mode_level` reward visibility strips `outcome.success` as well as `outcome.reward`
+Dated 2026-08-27.
+
+ALG-007 Step 2 says: "If reward_visibility == mode_level: strip per-task reward fields
+from the materialized copy, leaving only pass_rates.json." It names `reward`. It does not
+say what to do with `outcome.success`, which is the same fact expressed as a boolean.
+
+The paper probably meant that the distiller should not see per-episode outcomes at all,
+since GAP-04 frames the question as whether `A` saw mode-level pass rates only or per-task
+rewards. Leaving `success` in place would let the distiller reconstruct per-task outcomes
+exactly, which makes the switch decorative.
+
+**What we do:** under `mode_level`, strip both `outcome.reward` and `outcome.success`.
+
+Deliberately NOT stripped: `outcome.termination`, `outcome.steps_used`, and
+`outcome.step_cap_hit`. Those describe how an episode ended rather than whether it scored,
+and the method is failure-derived: removing them would gut the corpus to protect a
+distinction they do not carry. A capped episode is evidence about behavior, not a reward.
+
+**Where it bites:** TASK-028, the content address of every corpus built under
+`mode_level` (stripping changes the Merkle root, which is correct), and the quality of any
+skill distilled with the reproduction default.

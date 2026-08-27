@@ -25,7 +25,11 @@ from typing import Any
 
 from psd.core.models import CorpusManifest, Split, Trajectory
 from psd.corpus import splits as splits_module
-from psd.corpus.snapshot import mark_write_once, materialize
+from psd.corpus.snapshot import (
+    REWARD_VISIBILITY_MODE_LEVEL,
+    mark_write_once,
+    materialize,
+)
 
 log = logging.getLogger("psd.corpus")
 
@@ -166,6 +170,7 @@ def build_corpus_snapshot(
     redaction_policy_version: str = "redaction/1.0",
     analyzer_lib_source: Path | None = None,
     precomputed: dict[str, Any] | None = None,
+    reward_visibility: str = REWARD_VISIBILITY_MODE_LEVEL,
     created_at: datetime | None = None,
 ) -> CorpusManifest:
     """ALG-001 end to end.
@@ -290,6 +295,7 @@ def build_corpus_snapshot(
         build_warnings=warnings,
         analyzer_lib_version=analyzer_lib_version,
         redaction_policy_version=redaction_policy_version,
+        reward_visibility=reward_visibility,
         created_at=created_at or datetime.now(UTC),
     )
 
@@ -303,6 +309,7 @@ def build_corpus_snapshot(
             pass_rates,
             analyzer_lib_source=analyzer_lib_source,
             precomputed=precomputed,
+            reward_visibility=reward_visibility,
         )
         final = manifest.model_copy(update={"merkle_root": root})
         if destination.exists():

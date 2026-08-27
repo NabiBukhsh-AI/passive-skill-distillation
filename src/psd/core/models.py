@@ -359,6 +359,11 @@ class CorpusManifest(StrictModel):
     build_warnings: list[str] = Field(default_factory=list)
     analyzer_lib_version: str
     redaction_policy_version: str
+    #: ALG-007 Step 2 / GAP-04. What the distiller could see about per-episode outcomes
+    #: when this snapshot was materialized. Recorded because it changes what the method
+    #: had to work from, so two corpora built the same way but read differently are not
+    #: comparable and must not be treated as if they were.
+    reward_visibility: Literal["mode_level", "per_task"] = "mode_level"
     created_at: datetime
 
 
