@@ -1,8 +1,8 @@
-"""Statistical primitives (TASK-021 partial, spec Section 5.7).
+"""Statistical primitives (TASK-021, TASK-037, spec Section 5.7).
 
-Fisher exact, exact McNemar, and Benjamini-Hochberg land here now because ALG-006 needs
-them. Wilson intervals, the seeded paired bootstrap, and the guarded gap-recovery ratio
-are TASK-037 and are deliberately not written yet.
+Fisher exact, exact McNemar, and Benjamini-Hochberg arrived with ALG-006 (TASK-021).
+Wilson intervals and the seeded paired bootstrap arrived with TASK-037. The guarded
+gap-recovery ratio lives in `psd.core.metrics`, next to the other reported quantities.
 
 Everything here is exact rather than asymptotic. Spec Section 5.7 is explicit that at
 `n = 120` with `p_hat` near 0.19 the normal approximations are badly calibrated, and the
@@ -11,6 +11,9 @@ corpora these run over are 35 to 50 tasks, which is smaller still.
 
 from __future__ import annotations
 
+import math
+import random
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from math import comb, fsum
 
@@ -103,3 +106,111 @@ def benjamini_hochberg(p_values: list[float], q: float = 0.10) -> list[BHResult]
             significant=adjusted <= q,
         )
     return [r for r in results if r is not None]
+
+
+# ---------------------------------------------------------------------------
+# Interval estimation (TASK-037, spec Section 5.7)
+# ---------------------------------------------------------------------------
+
+#: Spec Section 5.7 requires Wilson rather than Wald. At n = 120 (40 tasks by 3 seeds)
+#: with p_hat near 0.19 (telecom no-think), Wald intervals are badly calibrated: they can
+#: extend below zero, which is not a possible success rate.
+DEFAULT_Z = 1.959963984540054  # two-sided 95%
+
+
+@dataclass(frozen=True)
+class Interval:
+    low: float
+    high: float
+
+    def contains(self, value: float) -> bool:
+        return self.low <= value <= self.high
+
+    @property
+    def excludes_zero(self) -> bool:
+        """Whether the whole interval sits strictly above zero.
+
+        This is gate predicate G1 in ALG-011. A point estimate that looks good with an
+        interval straddling zero is not evidence, and the gate must not treat it as such.
+        """
+        return self.low > 0.0
+
+
+def wilson_interval(successes: int, n: int, z: float = DEFAULT_Z) -> Interval:
+    """Wilson score interval (spec Section 5.7).
+
+    center = (p_hat + z^2/(2n)) / (1 + z^2/n)
+    half   = (z / (1 + z^2/n)) * sqrt( p_hat*(1-p_hat)/n + z^2/(4n^2) )
+    """
+    if n <= 0:
+        raise ValueError("wilson_interval needs at least one observation")
+    if not 0 <= successes <= n:
+        raise ValueError(f"successes={successes} is outside [0, {n}]")
+
+    p_hat = successes / n
+    denominator = 1.0 + z * z / n
+    center = (p_hat + z * z / (2 * n)) / denominator
+    half = (z / denominator) * math.sqrt(p_hat * (1 - p_hat) / n + z * z / (4 * n * n))
+    return Interval(max(0.0, center - half), min(1.0, center + half))
+
+
+def paired_bootstrap_delta(
+    baseline_by_task: Mapping[str, Sequence[float]],
+    treatment_by_task: Mapping[str, Sequence[float]],
+    *,
+    resamples: int = 10_000,
+    seed: int = 0,
+    z_percentiles: tuple[float, float] = (2.5, 97.5),
+) -> tuple[float, Interval]:
+    """Paired bootstrap over TASKS (spec Section 5.7).
+
+    Conditions run on the same task list, so tasks are the blocking unit and seeds are
+    within-task replicates. Resampling episodes instead of tasks would ignore the pairing
+    and understate the interval, which is the direction that manufactures false
+    confidence.
+
+    Seeded. Spec Section 18.1 forbids unseeded randomness anywhere an analyzer output
+    depends on it, and a gate decision certainly qualifies.
+
+    Returns (point estimate of the mean paired difference, confidence interval).
+    """
+    shared = sorted(set(baseline_by_task) & set(treatment_by_task))
+    if not shared:
+        raise ValueError("no tasks appear in both conditions; the comparison is not paired")
+
+    missing = sorted((set(baseline_by_task) | set(treatment_by_task)) - set(shared))
+    if missing:
+        raise ValueError(
+            f"{len(missing)} task(s) appear in only one condition: {missing[:5]}"
+            f"{' ...' if len(missing) > 5 else ''}. A paired comparison over a partial "
+            "overlap silently changes what is being compared."
+        )
+
+    def task_delta(task: str) -> float:
+        treatment = treatment_by_task[task]
+        baseline = baseline_by_task[task]
+        return sum(treatment) / len(treatment) - sum(baseline) / len(baseline)
+
+    deltas = [task_delta(task) for task in shared]
+    point = sum(deltas) / len(deltas)
+
+    rng = random.Random(seed)
+    n = len(deltas)
+    means: list[float] = []
+    for _ in range(resamples):
+        total = 0.0
+        for _ in range(n):
+            total += deltas[rng.randrange(n)]
+        means.append(total / n)
+    means.sort()
+
+    def percentile(pct: float) -> float:
+        if len(means) == 1:
+            return means[0]
+        position = (pct / 100.0) * (len(means) - 1)
+        lower = math.floor(position)
+        upper = min(lower + 1, len(means) - 1)
+        weight = position - lower
+        return means[lower] * (1 - weight) + means[upper] * weight
+
+    return point, Interval(percentile(z_percentiles[0]), percentile(z_percentiles[1]))
